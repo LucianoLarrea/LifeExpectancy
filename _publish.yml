@@ -1,0 +1,4 @@
+- source: LifeExpectancy.qmd
+  quarto-pub:
+    - id: bc3d7526-6ef9-48ce-9bf6-d0cf808e9bc2
+      url: 'https://takticflow.quarto.pub/lifeexpectancy'

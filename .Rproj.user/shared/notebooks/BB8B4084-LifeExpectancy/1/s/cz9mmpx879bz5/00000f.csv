@@ -1,0 +1,6 @@
+"0","#| label: conexion"
+"0","#| warning: false"
+"0","#| echo: true"
+"0","#| results: hide"
+"0","# Crear una conexión ficticia a una base de datos ficticia"
+"0","con <- dbConnect(RSQLite::SQLite(), dbname = "":memory:"")"

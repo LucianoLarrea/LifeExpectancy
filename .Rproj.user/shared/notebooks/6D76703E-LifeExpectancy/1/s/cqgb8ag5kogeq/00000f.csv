@@ -1,0 +1,27 @@
+"0","#| label: datos"
+"0","#| warning: false"
+"0","#| echo: true"
+"0","#| results: hide"
+"0","# Descargar los datasets"
+"0","tuesdata <- tidytuesdayR::tt_load(""2023-12-05"")"
+"2","--- Compiling #TidyTuesday Information for 2023-12-05 ----
+"
+"2","--- There are 3 files available ---
+"
+"2","--- Starting Download ---
+"
+"1","
+"
+"1","	Downloading file 1 of 3: `life_expectancy.csv`
+"
+"1","	Downloading file 2 of 3: `life_expectancy_different_ages.csv`
+"
+"1","	Downloading file 3 of 3: `life_expectancy_female_male.csv`
+"
+"1","
+"
+"2","--- Download complete ---
+"
+"0","life_expectancy <- tuesdata$life_expectancy"
+"0","life_expectancy_different_ages <- tuesdata$life_expectancy_different_ages"
+"0","# life_expectancy_female_male <- tuesdata$life_expectancy_female_male "

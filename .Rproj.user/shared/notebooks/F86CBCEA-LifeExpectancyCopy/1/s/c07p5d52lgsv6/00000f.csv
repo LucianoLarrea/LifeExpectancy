@@ -1,0 +1,8 @@
+"0","#| label: tablas"
+"0","#| warning: false"
+"0","#| echo: true"
+"0","#| results: hide"
+"0","# Crear tablas e insertar los datasets"
+"0","dbWriteTable(con, ""life"", life_expectancy)"
+"0","dbWriteTable(con, ""life_ages"", life_expectancy_different_ages)"
+"0","# dbWriteTable(con, ""life_sex"", life_expectancy_female_male)"

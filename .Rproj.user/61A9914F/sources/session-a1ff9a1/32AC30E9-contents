@@ -1,0 +1,409 @@
+---
+title: "LifeExpectancy"
+flexdashboard::flex_dashboard:
+    runtime: shiny
+format:
+  html:
+    grid: 
+      body-width: 1400px
+    resources: 
+      - shinylive-sw.js
+# format:
+#   html:
+#     grid: 
+#       body-width: 1400px
+#     resources: 
+#       - shinylive-sw.js
+filters: 
+  - shinylive
+---
+
+## 
+
+## Life Expectancy
+
+El siguiente código toma un [dataset](https://github.com/rfordatascience/tidytuesday/blob/master/data/2023/2023-12-05/readme.md "TidyTuesday Life Expectancy") provisto por [Tidy Tuesday](https://github.com/rfordatascience/tidytuesday/tree/master "Tidy Tuesday Github") que brinda información sobre la expectativa de vida anual de cada pais e intenta responder las siguientes preguntas:
+
+1- Cuáles son los 3 paises que en promedio tuvieron mayor/menor expectativa de vida cada año?
+
+2- Cuáles son los paises que lideraron en cada año con mayor/menor expectativa de vida?
+
+```{r}
+#| label: load-packages
+#| warning: false
+#| echo: true
+#| results: hide
+# Instalar y cargar las librerias
+# install.packages(c("tidytuesdayR", "DBI", "RSQLite","tidyverse","summarytools","datos","shiny"))
+library(tidytuesdayR)
+library(DBI)
+library(RSQLite)
+library(summarytools)
+library(tidyverse)
+library(datos)
+library(shiny)
+library(tinytex)
+```
+
+```{r}
+#| label: datos
+#| warning: false
+#| echo: true
+#| results: hide
+# Descargar los datasets
+tuesdata <- tidytuesdayR::tt_load("2023-12-05")
+life_expectancy <- tuesdata$life_expectancy
+life_expectancy_different_ages <- tuesdata$life_expectancy_different_ages
+# life_expectancy_female_male <- tuesdata$life_expectancy_female_male 
+```
+
+```{r}
+#| label: conexion
+#| warning: false
+#| echo: true
+#| results: hide
+# Crear una conexión ficticia a una base de datos ficticia
+con <- dbConnect(RSQLite::SQLite(), dbname = ":memory:")
+```
+
+```{r}
+#| label: tablas
+#| warning: false
+#| echo: true
+#| results: hide
+# Crear tablas e insertar los datasets
+dbWriteTable(con, "life", life_expectancy)
+dbWriteTable(con, "life_ages", life_expectancy_different_ages)
+# dbWriteTable(con, "life_sex", life_expectancy_female_male)
+```
+
+------------------------------------------------------------------------
+
+{{< page-break >}}
+
+## Expectativa de vida por continente
+
+```{r}
+#| label: continentes
+#| warning: false
+#| echo: true
+#| results: hide
+# Consultar datos desde la tabla life
+Continents <- dbGetQuery(con, "
+                         SELECT * 
+                         FROM life 
+                         WHERE Entity='Americas' 
+                         OR Entity='Africa'  
+                         OR Entity='Asia'  
+                         OR Entity='Europe' 
+                         OR Entity='Oceania' 
+                         OR Entity='World'
+                         ")
+```
+
+```{r}
+#| label: grafico_continentes
+#| warning: false
+#| echo: true
+#| results: hide
+# Graficar las expectativas de vida por continente
+ggplot(Continents, aes(x = Year, y = LifeExpectancy, color = Entity, label = Entity)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Evolución de la Expectativa de Vida por continente",
+       x = "Año",
+       y = "Expectativa de Vida") +
+  theme_minimal()
+```
+
+------------------------------------------------------------------------
+
+{{< page=break >}}
+
+## Expectativa de vida por nivel de ingresos
+
+```{r}
+#| label: ingresos
+#| warning: false
+#| echo: true
+#| results: hide
+# Consultar datos desde la tabla life
+Income <- dbGetQuery(con, "
+                         SELECT * 
+                         FROM life 
+                         WHERE Entity='Low-income countries' 
+                         OR Entity='Lower-middle-income countries'  
+                         OR Entity='Middle-income countries'  
+                         OR Entity='Upper-middle-income countries' 
+                         OR Entity='High-income countries' 
+                         ")
+```
+
+```{r}
+#| label: grafico_ingresos
+#| warning: false
+#| echo: true
+#| results: hide
+# Graficar las expectativas de vida por nivel de ingresos
+ggplot(Income, aes(x = Year, y = LifeExpectancy, color = Entity, label = Entity)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Evolución de la Expectativa de Vida por nivel de ingresos",
+       x = "Año",
+       y = "Expectativa de Vida") +
+  theme_minimal()
+```
+
+------------------------------------------------------------------------
+
+{{< page-break >}}
+
+## Expectativa de vida por nivel de desarrollo
+
+```{r}
+#| label: desarrollo
+#| warning: false
+#| echo: true
+#| results: hide
+# Consultar datos desde la tabla life
+Development <- dbGetQuery(con, "
+                         SELECT * 
+                         FROM life 
+                         WHERE Entity='Less developed regions' 
+                         OR Entity='Less developed regions, excluding China'  
+                         OR Entity='Less developed regions, excluding least developed countries'  
+                         OR Entity='More developed regions' 
+                         OR Entity='Small Island Developing States (SIDS)' 
+                         ")
+```
+
+```{r}
+#| label: grafico_desarrollo
+#| warning: false
+#| echo: true
+#| results: hide
+# Graficar las expectativas de vida por nivel de ingresos
+ggplot(Development, aes(x = Year, y = LifeExpectancy, color = Entity, label = Entity)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Evolución de la Expectativa de Vida por nivel de desarrollo",
+       x = "Año",
+       y = "Expectativa de Vida") +
+  theme_minimal()
+```
+
+------------------------------------------------------------------------
+
+{{< page-break >}}
+
+## Paises extremos
+
+Paises extremos son los 3 paises que en promedio tuvieron mayor/menor expectativa de vida cada año.
+
+```{r}
+#| label: filtro_year
+#| warning: false
+#| echo: true
+#| results: hide
+# Filtrar datos a partir de 1950 hasta 2019
+data <- life_expectancy %>% filter(Year >= 1950 & Year <= 2019,
+                                    !grepl("develop", Entity, ignore.case = TRUE))
+```
+
+```{r}
+#| label: tabla_filtrada_year
+#| warning: false
+#| echo: true
+#| results: hide
+dbWriteTable(con, "data", data)
+```
+
+```{r}
+#| label: top3
+#| warning: false
+#| echo: true
+#| results: hide
+# Consulta para obtener los 3 países con mayor LifeExpectancy en promedio
+query_top_countries <- "
+  SELECT Entity, AVG(LifeExpectancy) AS AvgLifeExpectancy
+  FROM data
+  GROUP BY Entity
+  ORDER BY AvgLifeExpectancy DESC
+  LIMIT 3
+"
+```
+
+```{r}
+#| label: bottom3
+#| warning: false
+#| echo: true
+#| results: hide
+# Consulta para obtener los 3 países con menor LifeExpectancy en promedio
+query_bottom_countries <- "
+  SELECT Entity, AVG(LifeExpectancy) AS AvgLifeExpectancy
+  FROM data
+  GROUP BY Entity
+  ORDER BY AvgLifeExpectancy ASC
+  LIMIT 3
+"
+```
+
+```{r}
+#| label: queries_extreme
+#| warning: false
+#| echo: true
+#| results: hide
+# Ejecutar las consultas y guardar los resultados en dataframes
+top_countries <- dbGetQuery(con, query_top_countries)
+bottom_countries <- dbGetQuery(con, query_bottom_countries)
+```
+
+```{r}
+#| label: show_extreme
+#| warning: false
+#| echo: true
+#| results: hide
+# Mostrar los resultados
+print("Países con mayor LifeExpectancy en promedio:")
+print(top_countries)
+
+print("Países con menor LifeExpectancy en promedio:")
+print(bottom_countries)
+```
+
+```{r}
+#| label: filtro_year2
+#| warning: false
+#| echo: true
+#| results: hide
+# Consultar datos desde la tabla life
+Extremos <- dbGetQuery(con, "SELECT * FROM life WHERE Entity='Monaco' OR Entity='Andorra'  OR Entity='San Marino'  OR Entity='South Sudan' OR Entity='Mali' OR Entity='Sierra Leone'")
+```
+
+```{r}
+#| label: extremos
+#| warning: false
+#| echo: true
+#| results: hide
+extremos <- Extremos %>%
+  filter(Year >= 1950)
+# Graficar las expectativas de vida por paises extremos
+ggplot(extremos, aes(x = Year, y = LifeExpectancy, color = Entity, label = Entity)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Evolución de la Expectativa de Vida por paises extremos",
+       x = "Año",
+       y = "Expectativa de Vida") +
+  theme_minimal()
+```
+
+------------------------------------------------------------------------
+
+{{< page-break >}}
+
+## Expectativa de vida segun edad
+
+A continuacion se compara la expectativa de vida al nacer versus la expectativa de vida al tener 80 años.
+
+```{r}
+dbWriteTable(con, "extremos", extremos)
+```
+
+```{r}
+#| label: join
+#| warning: false
+#| echo: true
+#| results: hide
+# Realizar el JOIN
+result_join <- dbGetQuery(con, "
+  SELECT LE.*, LDA.LifeExpectancy80
+  FROM extremos LE
+  INNER JOIN life_ages LDA
+  ON LE.Entity = LDA.Entity AND LE.Year = LDA.Year
+")
+
+```
+
+```{r}
+#| label: window
+#| warning: false
+#| echo: true
+#| results: hide
+result_window <- dbGetQuery(con, "
+  SELECT Entity, Year, LifeExpectancy, LifeExpectancy80,
+         LifeExpectancy80 - LifeExpectancy AS DiffLifeExpectancy
+  FROM (
+    SELECT LE.Entity, LE.Year, LE.LifeExpectancy, LDA.LifeExpectancy80,
+           ROW_NUMBER() OVER (PARTITION BY LE.Entity, LE.Year) AS row_num
+    FROM extremos LE
+    INNER JOIN life_ages LDA
+    ON LE.Entity = LDA.Entity AND LE.Year = LDA.Year
+  ) AS subquery
+  WHERE row_num = 1
+")
+
+# print(result_window)
+
+```
+
+```{r}
+#| label: delta
+#| warning: false
+#| echo: true
+#| results: hide
+# Graficar las expectativas de vida srgun edad por paises extremos
+ggplot(result_window, aes(x = Year, y = DiffLifeExpectancy, color = Entity, label = Entity)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Diferencia de la Expectativa de Vida segun edad por paises extremos",
+       x = "Año",
+       y = "Expectativa de Vida") +
+  theme_minimal()
+```
+
+------------------------------------------------------------------------
+
+{{< page-break >}}
+
+## Mejor performance
+
+Cual fue el pais que tuvo mejor evolucion de su expectativa de vida?
+
+1.  Common Table Expression (CTE) - RankedLifeExpectancy se obtienen los siguientes datos de data:
+
+    1.  Mediante la funcion de ventana LAG() se obtiene PrevYearLifeExpectancy, particionando los datos por Entity.
+
+    2.  La diferencia entre el año actual y el anterior es ChangeInLifeExpectancy.
+
+2.  Consulta principal: Selecciona el MaxIncreaseInLifeExpectancy de RankedLifeExpectancy.
+
+3.  Ejecución y resultado: Se obtien un ranking de los paises con mayor crecimiento de expectativa de vida en su año record.
+
+```{r}
+best_year <- dbGetQuery(con, "
+WITH RankedLifeExpectancy AS (
+  SELECT
+    Entity,
+    Year,
+    LifeExpectancy,
+    LAG(LifeExpectancy) OVER (PARTITION BY Entity ORDER BY Year) AS PrevYearLifeExpectancy,
+    LifeExpectancy - LAG(LifeExpectancy) OVER (PARTITION BY Entity ORDER BY Year) AS ChangeInLifeExpectancy
+  FROM
+    data
+)
+
+SELECT
+  Entity, 
+  Year as BestYear,
+  MAX(ChangeInLifeExpectancy) AS MaxIncrease
+FROM
+  RankedLifeExpectancy
+GROUP BY
+  Entity
+ORDER BY
+  MaxIncrease DESC
+LIMIT 10;
+")
+
+print(best_year)
+```
